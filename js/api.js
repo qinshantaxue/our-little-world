@@ -39,6 +39,12 @@ const API = {
   addTimelineEvent: (data)   => API.request('POST', '/api/timeline', data),
   deleteTimeline:   (id)     => API.request('DELETE', `/api/timeline/${id}`),
 
+  // ── Bucket List ──
+  getBucketList:    ()           => API.request('GET',  '/api/bucketlist'),
+  addBucketItem:    (data)       => API.request('POST', '/api/bucketlist', data),
+  toggleBucketItem: (id)         => API.request('PUT',  `/api/bucketlist/${id}`),
+  deleteBucketItem: (id)         => API.request('DELETE', `/api/bucketlist/${id}`),
+
   // ── Photos ──
   getPhotos:    ()           => API.request('GET',  '/api/photos'),
   uploadPhoto:  (formData)   => API.request('POST', '/api/photos/upload', formData),

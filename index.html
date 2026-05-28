@@ -37,10 +37,11 @@
                 <span class="brand-text" id="brandText">我们的小世界</span>
             </a>
             <div class="nav-links" id="navLinks">
-                <a href="pages/photos.html" class="nav-link">📷 相册</a>
-                <a href="pages/notes.html" class="nav-link">💌 便签</a>
-                <a href="pages/timeline.html" class="nav-link">📅 时间轴</a>
-                <a href="pages/diary.html" class="nav-link">📖 日记</a>
+                <a href="pages/photos.html"     class="nav-link">📷 相册</a>
+                <a href="pages/notes.html"      class="nav-link">💌 便签</a>
+                <a href="pages/timeline.html"   class="nav-link">📅 时间轴</a>
+                <a href="pages/diary.html"      class="nav-link">📖 日记</a>
+                <a href="pages/bucketlist.html" class="nav-link">🎯 打卡</a>
             </div>
             <button class="nav-toggle" id="navToggle" aria-label="菜单">
                 <span></span><span></span><span></span>
@@ -112,6 +113,45 @@
         </div>
     </section>
 
+    <!-- 我想你了宝宝 -->
+    <section class="miss-you-section">
+        <div class="container miss-you-container">
+            <button class="miss-you-btn" id="missYouBtn">
+                <span class="miss-you-btn-heart">♡</span>
+                <span>我想你了宝宝</span>
+            </button>
+            <p class="miss-you-hint">点击一下，给 TA 发一封「想你了」的邮件</p>
+            <button class="miss-you-config-btn" id="missYouConfigBtn">⚙ 配置通知邮箱</button>
+        </div>
+    </section>
+
+    <!-- 邮箱配置弹窗 -->
+    <div class="modal-overlay hidden" id="missYouModal">
+        <div class="modal">
+            <div class="modal-icon">💌</div>
+            <h2 class="modal-title">配置通知邮箱</h2>
+            <p class="modal-subtitle">配置后永久保存，无需每次重启重新填写</p>
+            <div class="form-group">
+                <label class="form-label" for="missYouToEmail">对方的邮箱（收件方）</label>
+                <input type="email" class="form-input" id="missYouToEmail" placeholder="baby@qq.com">
+            </div>
+            <div class="miss-you-divider">— 发送服务配置 —</div>
+            <div class="form-group">
+                <label class="form-label" for="missYouApiKey">Resend API Key</label>
+                <input type="password" class="form-input" id="missYouApiKey" placeholder="re_xxxxxxxxxxxxxxxx">
+            </div>
+            <div class="miss-you-email-note">
+                <p>💡 免费获取 API Key：</p>
+                <p>① 访问 <strong>resend.com</strong> → 注册（免费）→ API Keys → Create API Key</p>
+                <p>② 粘贴到上方输入框，每天可发 100 封，完全够用</p>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="btn btn-ghost" id="missYouModalCancel" style="flex:1">取消</button>
+                <button class="btn btn-primary" id="missYouModalSave" style="flex:1">保存 →</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 功能入口 -->
     <section class="features" id="features">
         <div class="container">
@@ -156,6 +196,18 @@
                         <span class="feat-arrow">→</span>
                     </div>
                 </a>
+                <a href="pages/bucketlist.html" class="feat-card feat-bucket">
+                    <div class="feat-bg"></div>
+                    <div class="feat-body">
+                        <div class="feat-icon">🎯</div>
+                        <h3 class="feat-title">打卡清单</h3>
+                        <p class="feat-desc">列下所有想一起做的事，一件一件去完成，留下专属回忆</p>
+                    </div>
+                    <div class="feat-footer">
+                        <span>查看清单</span>
+                        <span class="feat-arrow">→</span>
+                    </div>
+                </a>
                 <a href="pages/diary.html" class="feat-card feat-diary">
                     <div class="feat-bg"></div>
                     <div class="feat-body">
@@ -181,7 +233,108 @@
         </div>
     </footer>
 
+    <div class="toast-container" id="toastContainer"></div>
+
     <script src="js/api.js"></script>
     <script src="js/main.js"></script>
+    <script>
+    // ── 我想你了宝宝 ───────────────────────────────────────────
+    (function () {
+        const btn            = document.getElementById('missYouBtn');
+        const configBtn      = document.getElementById('missYouConfigBtn');
+        const modal          = document.getElementById('missYouModal');
+        const cancelBtn      = document.getElementById('missYouModalCancel');
+        const saveBtn        = document.getElementById('missYouModalSave');
+        const toEmailInput = document.getElementById('missYouToEmail');
+        const apiKeyInput  = document.getElementById('missYouApiKey');
+        const toastContainer = document.getElementById('toastContainer');
+
+        function showToast(msg, type = 'success') {
+            const el = document.createElement('div');
+            el.className = 'toast toast-' + type;
+            el.textContent = msg;
+            toastContainer.appendChild(el);
+            setTimeout(() => {
+                el.style.animation = 'toastOut 0.3s ease forwards';
+                el.addEventListener('animationend', () => el.remove());
+            }, 3200);
+        }
+
+        function ripple(e) {
+            const r = document.createElement('span');
+            r.className = 'miss-you-ripple';
+            const rect = btn.getBoundingClientRect();
+            r.style.left = (e.clientX - rect.left) + 'px';
+            r.style.top  = (e.clientY - rect.top)  + 'px';
+            btn.appendChild(r);
+            r.addEventListener('animationend', () => r.remove());
+        }
+
+        btn.addEventListener('click', async (e) => {
+            ripple(e);
+            btn.classList.add('loading');
+            try {
+                const res = await fetch('/api/miss-you', { method: 'POST' });
+                let data = {};
+                try { data = await res.json(); } catch (_) {}
+                if (!res.ok) {
+                    if (data.code === 'NO_EMAIL' || data.code === 'NO_SENDER') {
+                        showToast('请先完成邮箱配置 ⚙', 'error');
+                        modal.classList.remove('hidden');
+                    } else {
+                        showToast('发送失败：' + (data.error || 'HTTP ' + res.status), 'error');
+                    }
+                } else {
+                    showToast('♡ 已悄悄告诉 TA 你在想 TA~', 'success');
+                }
+            } catch (_) {
+                showToast('无法连接服务器，请检查服务是否已启动', 'error');
+            } finally {
+                btn.classList.remove('loading');
+            }
+        });
+
+        // 打开弹窗时加载已保存的配置
+        async function openConfigModal() {
+            try {
+                const s = await API.getSettings();
+                toEmailInput.value = s.miss_you_email || '';
+                apiKeyInput.value  = '';
+                apiKeyInput.placeholder = s.resend_api_key ? '（已设置，留空则不修改）' : 're_xxxxxxxxxxxxxxxx';
+            } catch (_) {}
+            modal.classList.remove('hidden');
+        }
+
+        configBtn.addEventListener('click', openConfigModal);
+        cancelBtn.addEventListener('click', () => modal.classList.add('hidden'));
+        modal.addEventListener('click', e => { if (e.target === modal) modal.classList.add('hidden'); });
+
+        saveBtn.addEventListener('click', async () => {
+            const toEmail = toEmailInput.value.trim();
+            const apiKey  = apiKeyInput.value.trim();
+
+            if (!toEmail || !toEmail.includes('@')) {
+                toEmailInput.focus();
+                toEmailInput.style.borderColor = '#D4878F';
+                return;
+            }
+            toEmailInput.style.borderColor = '';
+
+            saveBtn.textContent = '保存中…';
+            saveBtn.disabled = true;
+            try {
+                await API.saveSetting('miss_you_email', toEmail);
+                if (apiKey) await API.saveSetting('resend_api_key', apiKey);
+                modal.classList.add('hidden');
+                showToast('配置已保存 ✓', 'success');
+            } catch (_) {
+                showToast('保存失败，请重试', 'error');
+            } finally {
+                saveBtn.textContent = '保存 →';
+                saveBtn.disabled = false;
+            }
+        });
+    })();
+    </script>
 </body>
 </html>

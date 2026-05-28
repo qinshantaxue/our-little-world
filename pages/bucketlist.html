@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打卡清单 — 我们的小世界</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/page.css">
+    <style>
+    .bucket-header-stats {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        margin-top: 16px;
+        font-size: 14px;
+        color: var(--text-muted);
+    }
+    .bucket-header-stats span { display: flex; align-items: center; gap: 6px; }
+    .bucket-header-stats strong { color: var(--rose-dark); font-size: 18px; }
+
+    .bucket-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .bucket-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        box-shadow: var(--shadow-sm);
+        transition: all var(--ease);
+        cursor: pointer;
+    }
+    .bucket-item:hover { box-shadow: var(--shadow-md); }
+    .bucket-item.completed {
+        opacity: 0.65;
+        background: #f8f9f0;
+    }
+    .bucket-item.completed .bucket-item-title {
+        text-decoration: line-through;
+        color: var(--text-muted);
+    }
+
+    .bucket-check {
+        width: 24px;
+        height: 24px;
+        border: 2px solid var(--border);
+        border-radius: 50%;
+        flex-shrink: 0;
+        margin-top: 2px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 13px;
+        transition: all 0.25s ease;
+        background: var(--cream);
+    }
+    .bucket-item.completed .bucket-check {
+        background: var(--rose);
+        border-color: var(--rose);
+        color: #fff;
+    }
+    .bucket-item:not(.completed) .bucket-check:hover {
+        border-color: var(--rose);
+        background: var(--rose-light);
+    }
+
+    .bucket-item-body { flex: 1; min-width: 0; }
+    .bucket-item-title {
+        font-family: var(--font-serif);
+        font-size: 17px;
+        color: var(--text);
+        margin-bottom: 4px;
+    }
+    .bucket-item-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+        line-height: 1.6;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    .bucket-item-meta {
+        font-size: 11px;
+        color: var(--text-muted);
+        margin-top: 6px;
+    }
+    .bucket-item-actions {
+        display: flex;
+        gap: 4px;
+        flex-shrink: 0;
+        opacity: 0;
+        transition: opacity var(--ease);
+    }
+    .bucket-item:hover .bucket-item-actions { opacity: 1; }
+    .bucket-item-actions button {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px 8px;
+        border-radius: 6px;
+        font-size: 15px;
+        color: var(--text-muted);
+        transition: all var(--ease);
+    }
+    .bucket-item-actions button:hover { background: rgba(212,135,143,0.12); color: var(--rose-dark); }
+    .bucket-item-actions .del-btn:hover { background: rgba(212,87,87,0.12); color: #c0392b; }
+
+    .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: var(--border);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 12px 0 8px;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--rose-light), var(--rose));
+        border-radius: 4px;
+        transition: width 0.6s ease;
+    }
+    .progress-text {
+        text-align: center;
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 640px) {
+        .bucket-item-actions { opacity: 1; }
+    }
+    </style>
+</head>
+<body>
+    <nav class="nav scrolled" id="mainNav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-brand">
+                <span class="brand-heart">♡</span>
+                <span class="brand-text">我们的小世界</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="photos.html"     class="nav-link">📷 相册</a>
+                <a href="notes.html"      class="nav-link">💌 便签</a>
+                <a href="timeline.html"   class="nav-link">📅 时间轴</a>
+                <a href="diary.html"      class="nav-link">📖 日记</a>
+                <a href="bucketlist.html" class="nav-link active">🎯 打卡</a>
+            </div>
+            <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <main class="page-main">
+        <div class="page-header">
+            <div class="page-icon">🎯</div>
+            <h1 class="page-title">情侣打卡清单</h1>
+            <p class="page-subtitle">一起完成想做的每一件事</p>
+            <div class="bucket-header-stats" id="headerStats">
+                <span>✅ <strong id="doneCount">0</strong> 已完成</span>
+                <span>🎯 <strong id="totalCount">0</strong> 总计</span>
+            </div>
+            <div class="progress-bar"><div class="progress-bar-fill" id="progressFill" style="width:0%"></div></div>
+            <div class="progress-text" id="progressText">一起完成更多心愿吧 ❤️</div>
+        </div>
+
+        <div class="page-content">
+            <!-- 新增 -->
+            <div class="form-card">
+                <div class="form-card-title">✨ 添加新心愿</div>
+                <div class="form-row">
+                    <input type="text" class="form-input" id="itemTitle" placeholder="想一起做的事…" style="flex:2;">
+                    <input type="text" class="form-input" id="itemDesc" placeholder="补充说明（可选）" style="flex:3;">
+                    <button class="btn btn-primary" id="addBtn" style="white-space:nowrap;">添加</button>
+                </div>
+            </div>
+
+            <!-- 列表 -->
+            <div id="bucketContainer">
+                <div class="empty-state" id="bucketEmpty">
+                    <span class="empty-state-icon">🎯</span>
+                    <p>还没有心愿，添加你们想一起做的事吧</p>
+                </div>
+                <div class="bucket-list" id="bucketList" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/nav.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const titleInput = document.getElementById('itemTitle');
+        const descInput  = document.getElementById('itemDesc');
+        const addBtn     = document.getElementById('addBtn');
+        const list       = document.getElementById('bucketList');
+        const empty      = document.getElementById('bucketEmpty');
+        const doneCount  = document.getElementById('doneCount');
+        const totalCount = document.getElementById('totalCount');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+
+        async function loadList() {
+            try {
+                const items = await API.getBucketList();
+                renderItems(items);
+                updateStats(items);
+            } catch (e) {
+                toast('⚠️ 加载失败：' + e.message);
+            }
+        }
+
+        function renderItems(items) {
+            if (!items.length) {
+                list.style.display = 'none';
+                empty.style.display = 'block';
+                return;
+            }
+            empty.style.display = 'none';
+            list.style.display = 'flex';
+
+            list.innerHTML = items.map(item => `
+                <div class="bucket-item ${item.is_completed ? 'completed' : ''}" data-id="${item.id}">
+                    <div class="bucket-check" onclick="toggleItem(${item.id})">${item.is_completed ? '✓' : ''}</div>
+                    <div class="bucket-item-body" onclick="toggleItem(${item.id})">
+                        <div class="bucket-item-title">${escapeHtml(item.title)}</div>
+                        ${item.description ? `<div class="bucket-item-desc">${escapeHtml(item.description)}</div>` : ''}
+                        <div class="bucket-item-meta">
+                            ${item.is_completed
+                                ? '✅ 完成于 ' + formatDate(item.completed_at)
+                                : '📅 添加于 ' + formatDate(item.created_at)
+                            }
+                        </div>
+                    </div>
+                    <div class="bucket-item-actions">
+                        <button class="del-btn" onclick="event.stopPropagation();deleteItem(${item.id})" title="删除">🗑️</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats(items) {
+            const total = items.length;
+            const done  = items.filter(i => i.is_completed).length;
+            doneCount.textContent = done;
+            totalCount.textContent = total;
+            const pct = total ? Math.round(done / total * 100) : 0;
+            progressFill.style.width = pct + '%';
+            if (pct === 100) progressText.textContent = '🎉 所有心愿都完成啦！你们太棒了！';
+            else if (pct > 50) progressText.textContent = `已完成 ${pct}%，继续加油 ❤️`;
+            else progressText.textContent = `已完成 ${pct}%，一起完成更多心愿吧 ✨`;
+        }
+
+        window.toggleItem = async (id) => {
+            try {
+                const updated = await API.toggleBucketItem(id);
+                loadList();
+                if (updated?.is_completed) toast('🎉 又完成一个心愿！');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        };
+
+        window.deleteItem = async (id) => {
+            if (!confirm('确定删除这个心愿吗？')) return;
+            try {
+                await API.deleteBucketItem(id);
+                loadList();
+                toast('已删除');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        };
+
+        addBtn.addEventListener('click', async () => {
+            const title = titleInput.value.trim();
+            if (!title) {
+                titleInput.focus();
+                titleInput.style.borderColor = '#D4878F';
+                setTimeout(() => titleInput.style.borderColor = '', 1500);
+                return;
+            }
+            try {
+                await API.addBucketItem({ title, description: descInput.value.trim() });
+                titleInput.value = '';
+                descInput.value = '';
+                toast('✨ 新心愿已添加！');
+                loadList();
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        });
+
+        titleInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); addBtn.click(); }
+        });
+
+        loadList();
+    });
+
+    function escapeHtml(str) { return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function formatDate(t) {
+        if (!t) return '';
+        const d = new Date(t.replace(' ','T'));
+        return d.toLocaleDateString('zh-CN', { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    }
+    function toast(msg) {
+        const c = document.getElementById('toastContainer');
+        const el = document.createElement('div'); el.className = 'toast';
+        el.textContent = msg; c.appendChild(el);
+        setTimeout(() => el.remove(), 2500);
+    }
+    </script>
+</body>
+</html>

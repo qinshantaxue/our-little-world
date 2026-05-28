@@ -470,10 +470,11 @@ img { max-width: 100%; display: block; }
     transition: opacity var(--ease);
     border-radius: inherit;
 }
-.feat-photos  .feat-bg { background: linear-gradient(135deg, #FFF0F2, #FFE5E8); }
-.feat-notes   .feat-bg { background: linear-gradient(135deg, #FFFBEE, #FFF0C8); }
+.feat-photos   .feat-bg { background: linear-gradient(135deg, #FFF0F2, #FFE5E8); }
+.feat-notes    .feat-bg { background: linear-gradient(135deg, #FFFBEE, #FFF0C8); }
 .feat-timeline .feat-bg { background: linear-gradient(135deg, #F0F6FF, #DDEEFF); }
-.feat-diary   .feat-bg { background: linear-gradient(135deg, #F0FFF7, #D5F5E8); }
+.feat-diary    .feat-bg { background: linear-gradient(135deg, #F0FFF7, #D5F5E8); }
+.feat-bucket   .feat-bg { background: linear-gradient(135deg, #FFF4F0, #FFE4D5); }
 
 .feat-body { position: relative; z-index: 1; flex: 1; }
 .feat-icon { font-size: 40px; margin-bottom: 16px; display: block; }
@@ -561,6 +562,222 @@ img { max-width: 100%; display: block; }
 .vis-card-back  { --r: -6deg; }
 .vis-card-mid   { --r: -2deg; }
 .vis-card-front { --r:  2deg; }
+
+/* ============================================================
+   Homepage Photo Slideshow
+   ============================================================ */
+.slideshow-wrap {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: inherit;
+}
+.slideshow-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    animation: slideFadeIn 0.7s ease;
+}
+.slideshow-caption {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px 14px;
+    background: linear-gradient(to top, rgba(0,0,0,0.52), transparent);
+    color: rgba(255,255,255,0.92);
+    font-size: 12px;
+    text-align: center;
+    line-height: 1.4;
+}
+@keyframes slideFadeIn {
+    from { opacity: 0; transform: scale(1.04); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* ============================================================
+   Miss You Section
+   ============================================================ */
+.miss-you-section {
+    padding: 72px 0;
+    text-align: center;
+    background: linear-gradient(180deg, var(--cream) 0%, var(--rose-pale) 50%, var(--cream) 100%);
+    position: relative;
+    overflow: hidden;
+}
+.miss-you-section::before {
+    content: '♡';
+    position: absolute;
+    font-size: 320px;
+    color: var(--rose-light);
+    opacity: 0.25;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    line-height: 1;
+}
+.miss-you-container {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+}
+.miss-you-btn {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 32px 72px;
+    background: linear-gradient(135deg, var(--rose) 0%, var(--rose-dark) 100%);
+    color: #fff;
+    border: none;
+    border-radius: 100px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    box-shadow: 0 12px 40px rgba(212, 135, 143, 0.45);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+}
+.miss-you-btn:hover {
+    transform: translateY(-4px) scale(1.03);
+    box-shadow: 0 20px 60px rgba(212, 135, 143, 0.55);
+}
+.miss-you-btn:active { transform: scale(0.97); }
+.miss-you-btn.loading { opacity: 0.7; pointer-events: none; }
+.miss-you-btn-heart {
+    font-size: 44px;
+    display: block;
+    animation: heartbeat 1.4s ease-in-out infinite;
+}
+.miss-you-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.32);
+    width: 80px; height: 80px;
+    margin-top: -40px; margin-left: -40px;
+    transform: scale(0);
+    animation: missYouRipple 0.7s linear;
+    pointer-events: none;
+}
+@keyframes missYouRipple {
+    to { transform: scale(8); opacity: 0; }
+}
+.miss-you-hint {
+    margin-top: 20px;
+    font-size: 14px;
+    color: var(--text-muted);
+}
+.miss-you-config-btn {
+    margin-top: 10px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 4px 8px;
+    transition: color var(--ease);
+}
+.miss-you-config-btn:hover { color: var(--rose); }
+
+/* Email config divider */
+.miss-you-divider {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 4px 0 16px;
+    position: relative;
+}
+.miss-you-divider::before,
+.miss-you-divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: var(--border);
+}
+.miss-you-divider::before { left: 0; }
+.miss-you-divider::after  { right: 0; }
+
+/* Email config note */
+.miss-you-email-note {
+    background: var(--rose-pale);
+    border: 1px solid var(--rose-light);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-top: 12px;
+    text-align: left;
+}
+.miss-you-email-note p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+    line-height: 1.6;
+}
+.miss-you-email-note p:last-child { margin-bottom: 0; }
+.miss-you-email-note code {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    background: var(--rose-light);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--rose-dark);
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.toast-container {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 600;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    pointer-events: none;
+}
+.toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 22px;
+    border-radius: 50px;
+    font-size: 14px;
+    background: var(--white);
+    box-shadow: 0 8px 32px rgba(44, 26, 26, 0.14);
+    border: 1px solid var(--border);
+    animation: toastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: auto;
+    white-space: nowrap;
+    max-width: calc(100vw - 48px);
+    white-space: normal;
+    text-align: center;
+}
+.toast-success { border-color: var(--rose-light); color: var(--rose-dark); }
+.toast-error   { border-color: #F5C5C5; color: #9B3A3A; background: #FFF8F8; }
+@keyframes toastIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes toastOut {
+    from { transform: translateY(0);    opacity: 1; }
+    to   { transform: translateY(10px); opacity: 0; }
+}
 
 /* ============================================================
    Responsive

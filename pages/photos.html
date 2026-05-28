@@ -17,10 +17,11 @@
                 <span class="brand-text">我们的小世界</span>
             </a>
             <div class="nav-links" id="navLinks">
-                <a href="photos.html"   class="nav-link active">📷 相册</a>
-                <a href="notes.html"    class="nav-link">💌 便签</a>
-                <a href="timeline.html" class="nav-link">📅 时间轴</a>
-                <a href="diary.html"    class="nav-link">📖 日记</a>
+                <a href="photos.html"     class="nav-link active">📷 相册</a>
+                <a href="notes.html"      class="nav-link">💌 便签</a>
+                <a href="timeline.html"   class="nav-link">📅 时间轴</a>
+                <a href="diary.html"      class="nav-link">📖 日记</a>
+                <a href="bucketlist.html" class="nav-link">🎯 打卡</a>
             </div>
             <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
         </div>
@@ -30,42 +31,105 @@
         <div class="page-header">
             <div class="page-icon">📷</div>
             <h1 class="page-title">相册</h1>
-            <p class="page-subtitle">上传并整理你们之间最珍贵的照片</p>
+            <p class="page-subtitle">整理你们之间最珍贵的照片</p>
         </div>
 
-        <div class="page-content">
-            <!-- 上传照片 -->
-            <div class="form-card">
-                <div class="form-card-title">📤 上传新照片</div>
-                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
-                    <div style="flex:1; min-width:200px;">
-                        <label class="form-label" for="photoUpload">选择照片</label>
-                        <input type="file" class="form-input" id="photoUpload" accept="image/*" style="padding:10px 16px;">
-                    </div>
-                    <div style="flex:1; min-width:200px;">
-                        <label class="form-label" for="photoDesc">描述（可选）</label>
-                        <input type="text" class="form-input" id="photoDesc" placeholder="这张照片的故事…">
-                    </div>
-                    <button class="btn btn-primary" id="uploadBtn" style="white-space:nowrap;">上传</button>
+        <div class="page-content albums-content">
+            <!-- 面包屑导航 -->
+            <nav class="album-breadcrumb" id="breadcrumb">
+                <span class="bc-item bc-current">相册</span>
+            </nav>
+
+            <!-- 常规工具栏 -->
+            <div class="album-toolbar" id="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-ghost btn-sm" id="newAlbumBtn">＋ 新建相册</button>
+                    <button class="btn btn-primary btn-sm" id="uploadBtn">📤 上传照片</button>
                 </div>
-                <div id="uploadProgress" style="display:none; margin-top:12px; font-size:14px; color:var(--text-muted);">⏳ 上传中…</div>
+                <button class="btn btn-ghost btn-sm" id="selectModeBtn">☑ 选择</button>
             </div>
 
-            <!-- 照片列表 -->
-            <div id="photoContainer">
-                <div class="empty-state" id="photoEmpty">
-                    <span class="empty-state-icon">📷</span>
-                    <p>还没有照片，上传你们的第一张合照吧</p>
+            <!-- 选择模式工具栏 -->
+            <div class="select-toolbar hidden" id="selectToolbar">
+                <span class="select-count" id="selectCount">已选 0 张</span>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-ghost btn-sm" id="selectAllBtn">全选</button>
+                    <button class="btn btn-danger btn-sm" id="deleteSelectedBtn" disabled>🗑 删除已选</button>
+                    <button class="btn btn-ghost btn-sm" id="cancelSelectBtn">取消</button>
                 </div>
-                <div class="photo-grid" id="photoGrid" style="display:none;"></div>
+            </div>
+
+            <!-- 子相册 -->
+            <div id="albumsSection" class="hidden">
+                <div class="section-label">📁 子相册</div>
+                <div class="albums-grid" id="albumsGrid"></div>
+            </div>
+
+            <!-- 照片 -->
+            <div id="photosSection">
+                <div class="section-label" id="photosLabel">📷 照片</div>
+                <div class="empty-state hidden" id="emptyState">
+                    <span class="empty-state-icon">📷</span>
+                    <p>这里还没有照片，点击「上传照片」添加吧</p>
+                </div>
+                <div class="photo-grid" id="photoGrid"></div>
             </div>
         </div>
     </main>
 
     <!-- Lightbox -->
-    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
-        <button class="lightbox-close" onclick="event.stopPropagation();closeLightbox()">✕</button>
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose">✕</button>
+        <button class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</button>
+        <button class="lightbox-nav lightbox-next" id="lightboxNext">›</button>
         <img id="lightboxImg" src="" alt="">
+        <div class="lightbox-caption" id="lightboxCaption"></div>
+    </div>
+
+    <!-- 新建相册弹窗 -->
+    <div class="modal-overlay hidden" id="newAlbumModal">
+        <div class="modal">
+            <div class="modal-icon">📁</div>
+            <h2 class="modal-title">新建相册</h2>
+            <p class="modal-subtitle" id="newAlbumSubtitle">将在当前位置创建相册</p>
+            <div class="form-group">
+                <label class="form-label">相册名称</label>
+                <input type="text" class="form-input" id="albumNameInput" placeholder="例如：我们的旅行">
+            </div>
+            <div class="form-group">
+                <label class="form-label">描述（可选）</label>
+                <input type="text" class="form-input" id="albumDescInput" placeholder="记录美好时光">
+            </div>
+            <div style="display:flex; gap:10px; margin-top:16px;">
+                <button class="btn btn-ghost" id="cancelAlbumBtn" style="flex:1">取消</button>
+                <button class="btn btn-primary" id="createAlbumBtn" style="flex:1">创建 →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 上传照片弹窗 -->
+    <div class="modal-overlay hidden" id="uploadModal">
+        <div class="modal upload-modal">
+            <div class="modal-icon">📤</div>
+            <h2 class="modal-title">上传照片</h2>
+            <p class="modal-subtitle">支持批量上传，可同时选择多张</p>
+            <div class="upload-drop-zone" id="uploadDropZone">
+                <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+                <div class="upload-placeholder" id="uploadPlaceholder">
+                    <span style="font-size:40px;">🖼</span>
+                    <p style="margin:10px 0 4px; color:var(--text-muted); font-size:14px;">点击或拖拽照片到这里</p>
+                    <span style="font-size:12px; color:var(--text-muted);">支持 JPG / PNG / GIF / WebP，单张最大 15MB</span>
+                </div>
+                <div class="upload-queue hidden" id="uploadQueue"></div>
+            </div>
+            <div class="upload-progress-bar hidden" id="uploadProgressBar">
+                <div class="upload-progress-fill" id="uploadProgressFill"></div>
+            </div>
+            <div style="display:flex; gap:10px; margin-top:16px;">
+                <button class="btn btn-ghost" id="cancelUploadBtn" style="flex:1">取消</button>
+                <button class="btn btn-primary" id="startUploadBtn" style="flex:1" disabled>开始上传</button>
+            </div>
+        </div>
     </div>
 
     <div class="toast-container" id="toastContainer"></div>
@@ -73,179 +137,468 @@
     <script src="../js/api.js"></script>
     <script src="../js/nav.js"></script>
     <script>
-    // ── 自动检测模式 ──
-    // 本地模式：/uploads/filename  云端模式：通过 API 获取 base64
-    const IS_CLOUD = location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+    /* ── State ── */
+    const S = {
+        albumId: null,
+        breadcrumbs: [],
+        albums: [],
+        photos: [],
+        selectedIds: new Set(),
+        selectMode: false,
+        isCloud: false,
+        photoCache: {},
+        lbIndex: 0,
+        uploadFiles: [],
+    };
 
-    document.addEventListener('DOMContentLoaded', () => {
-        const fileInput   = document.getElementById('photoUpload');
-        const descInput   = document.getElementById('photoDesc');
-        const uploadBtn   = document.getElementById('uploadBtn');
-        const progress    = document.getElementById('uploadProgress');
-        const photoGrid   = document.getElementById('photoGrid');
-        const photoEmpty  = document.getElementById('photoEmpty');
-        const lightbox    = document.getElementById('lightbox');
-        const lightboxImg = document.getElementById('lightboxImg');
+    /* ── Utilities ── */
+    function esc(s) {
+        return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
 
-        // 缓存已加载的 base64 图片数据
-        const photoCache = {};
+    function $(id) { return document.getElementById(id); }
 
-        async function loadPhotos() {
-            try {
-                const photos = await API.getPhotos();
-                renderPhotos(photos);
-            } catch (e) {
-                toast('⚠️ 加载失败：' + e.message);
-            }
-        }
+    function toast(msg, isErr) {
+        const c = $('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast' + (isErr ? ' toast-error' : '');
+        el.textContent = msg;
+        c.appendChild(el);
+        setTimeout(() => {
+            el.style.animation = 'toastOut 0.3s ease forwards';
+            el.addEventListener('animationend', () => el.remove());
+        }, 2800);
+    }
 
-        function renderPhotos(photos) {
-            if (!photos.length) {
-                photoGrid.style.display = 'none';
-                photoEmpty.style.display = 'block';
-                return;
-            }
-            photoEmpty.style.display = 'none';
-            photoGrid.style.display = 'grid';
-
-            photoGrid.innerHTML = photos.map(p => {
-                const src = IS_CLOUD
-                    ? `data:image/jpeg;base64,${p.data_base64 || ''}`  // 云端：后续动态加载
-                    : `/uploads/${p.filename}`;
-                return `
-                <div class="photo-card" data-id="${p.id}">
-                    <img src="${src}" alt="${escapeHtml(p.description || p.original_name)}" loading="lazy" onclick="openLightbox(${p.id})">
-                    <button class="photo-card-del" onclick="event.stopPropagation();deletePhoto(${p.id})" title="删除">✕</button>
-                    <div class="photo-card-overlay">
-                        ${p.description ? `<div class="photo-card-desc">${escapeHtml(p.description)}</div>` : ''}
-                    </div>
-                </div>`;
-            }).join('');
-
-            // 云端模式：异步加载图片
-            if (IS_CLOUD) {
-                photos.forEach(p => loadPhotoData(p.id));
-            }
-        }
-
-        async function loadPhotoData(id) {
-            if (photoCache[id]) return;
-            try {
-                const res = await API.request('GET', `/api/photos/${id}/data`);
-                if (res.data) {
-                    photoCache[id] = res.data;
-                    const img = document.querySelector(`.photo-card[data-id="${id}"] img`);
-                    if (img) img.src = `data:image/jpeg;base64,${res.data}`;
-                }
-            } catch (_) {}
-        }
-
-        window.deletePhoto = async (id) => {
-            if (!confirm('确定删除这张照片吗？')) return;
-            try {
-                await API.deletePhoto(id);
-                delete photoCache[id];
-                loadPhotos();
-                toast('已删除');
-            } catch (e) {
-                toast('⚠️ ' + e.message);
-            }
-        };
-
-        window.openLightbox = async (id) => {
-            let src;
-            if (IS_CLOUD) {
-                const data = photoCache[id];
-                if (data) {
-                    src = `data:image/jpeg;base64,${data}`;
-                } else {
-                    try {
-                        const res = await API.request('GET', `/api/photos/${id}/data`);
-                        if (res.data) src = `data:image/jpeg;base64,${res.data}`;
-                    } catch (_) {}
-                }
-            } else {
-                const card = document.querySelector(`.photo-card[data-id="${id}"] img`);
-                src = card ? card.src : '';
-            }
-            if (src) {
-                lightboxImg.src = src;
-                lightbox.classList.add('open');
-            }
-        };
-
-        window.closeLightbox = () => {
-            lightbox.classList.remove('open');
-            setTimeout(() => lightboxImg.src = '', 300);
-        };
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeLightbox();
-        });
-
-        // ── 上传 ──
-        uploadBtn.addEventListener('click', async () => {
-            const file = fileInput.files[0];
-            if (!file) {
-                toast('⚠️ 请先选择一张照片');
-                return;
-            }
-
-            progress.style.display = 'block';
-            uploadBtn.disabled = true;
-
-            try {
-                if (IS_CLOUD) {
-                    // 云端模式：转为 base64 发送
-                    const data_base64 = await fileToBase64(file);
-                    await API.uploadPhoto({
-                        name: file.name,
-                        data_base64: data_base64.split(',')[1],
-                        description: descInput.value.trim()
-                    });
-                } else {
-                    // 本地模式：FormData 上传
-                    const formData = new FormData();
-                    formData.append('photo', file);
-                    formData.append('description', descInput.value.trim());
-                    await API.uploadPhoto(formData);
-                }
-                fileInput.value = '';
-                descInput.value = '';
-                toast('📷 照片已上传！');
-                loadPhotos();
-            } catch (e) {
-                toast('⚠️ ' + e.message);
-            } finally {
-                progress.style.display = 'none';
-                uploadBtn.disabled = false;
-            }
-        });
-
-        loadPhotos();
+    /* ── Boot ── */
+    document.addEventListener('DOMContentLoaded', async () => {
+        try {
+            const m = await fetch('/api/mode').then(r => r.json());
+            S.isCloud = m.mode === 'cloud';
+        } catch (_) {}
+        setupUI();
+        renderBreadcrumb();
+        await loadAll();
     });
 
-    // ── 工具函数 ──
+    async function loadAll() {
+        await Promise.all([loadAlbums(), loadPhotos()]);
+    }
+
+    /* ── Data Loading ── */
+    async function loadAlbums() {
+        try {
+            const pid = S.albumId != null ? S.albumId : '';
+            S.albums = await fetch(`/api/albums?parent_id=${pid}`).then(r => r.json());
+            renderAlbums();
+        } catch (_) { toast('加载相册失败', true); }
+    }
+
+    async function loadPhotos() {
+        try {
+            const url = S.albumId != null ? `/api/photos?album_id=${S.albumId}` : '/api/photos';
+            S.photos = await fetch(url).then(r => r.json());
+            renderPhotos();
+        } catch (_) { toast('加载照片失败', true); }
+    }
+
+    /* ── Render ── */
+    function renderBreadcrumb() {
+        const el = $('breadcrumb');
+        const all = [{ id: null, name: '相册' }, ...S.breadcrumbs];
+        el.innerHTML = all.map((item, i) => {
+            const last = i === all.length - 1;
+            if (last) return `<span class="bc-item bc-current">${esc(item.name)}</span>`;
+            return `<button class="bc-item bc-link" data-id="${item.id}">${esc(item.name)}</button><span class="bc-sep">›</span>`;
+        }).join('');
+        el.querySelectorAll('.bc-link').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const id = btn.dataset.id === 'null' ? null : parseInt(btn.dataset.id);
+                jumpTo(id);
+            });
+        });
+    }
+
+    function renderAlbums() {
+        const section = $('albumsSection');
+        const grid = $('albumsGrid');
+        if (!S.albums.length) { section.classList.add('hidden'); return; }
+        section.classList.remove('hidden');
+        grid.innerHTML = S.albums.map(a => {
+            const cover = !S.isCloud && a.cover_filename
+                ? `<img src="/uploads/${esc(a.cover_filename)}" alt="" loading="lazy">`
+                : `<div class="album-placeholder"><span>📁</span></div>`;
+            return `
+            <div class="album-card" data-id="${a.id}">
+                <div class="album-cover">${cover}</div>
+                <div class="album-info">
+                    <div class="album-name">${esc(a.name)}</div>
+                    <div class="album-meta">${a.photo_count} 张 · ${a.sub_count} 个子相册</div>
+                </div>
+                <button class="album-del-btn" data-id="${a.id}" data-name="${esc(a.name)}" title="删除相册">🗑</button>
+            </div>`;
+        }).join('');
+
+        grid.querySelectorAll('.album-card').forEach(card => {
+            const id = parseInt(card.dataset.id);
+            const name = S.albums.find(a => a.id === id)?.name || '';
+            card.querySelector('.album-cover').addEventListener('click', () => enterAlbum(id, name));
+            card.querySelector('.album-name').addEventListener('click', () => enterAlbum(id, name));
+            card.querySelector('.album-del-btn').addEventListener('click', e => {
+                e.stopPropagation();
+                deleteAlbum(id, name);
+            });
+        });
+    }
+
+    function renderPhotos() {
+        const grid = $('photoGrid');
+        const empty = $('emptyState');
+        $('photosLabel').textContent = `📷 照片${S.photos.length ? ' · ' + S.photos.length + ' 张' : ''}`;
+        if (!S.photos.length) {
+            empty.classList.remove('hidden');
+            grid.innerHTML = '';
+            return;
+        }
+        empty.classList.add('hidden');
+        grid.innerHTML = S.photos.map((p, i) => {
+            const src = S.isCloud ? '' : `/uploads/${esc(p.filename)}`;
+            const sel = S.selectedIds.has(p.id);
+            return `
+            <div class="photo-card ${S.selectMode ? 'selectable' : ''} ${sel ? 'selected' : ''}"
+                 data-id="${p.id}" data-idx="${i}">
+                <img src="${src}" alt="${esc(p.description || p.original_name)}" loading="lazy">
+                <div class="photo-check">${sel ? '✓' : ''}</div>
+                <button class="photo-del-btn" title="删除">✕</button>
+                ${p.description ? `<div class="photo-card-overlay"><div class="photo-card-desc">${esc(p.description)}</div></div>` : ''}
+            </div>`;
+        }).join('');
+
+        grid.querySelectorAll('.photo-card').forEach(card => {
+            const id = parseInt(card.dataset.id);
+            const idx = parseInt(card.dataset.idx);
+            card.querySelector('.photo-del-btn').addEventListener('click', e => {
+                e.stopPropagation();
+                deleteSinglePhoto(id);
+            });
+            card.addEventListener('click', () => {
+                if (S.selectMode) toggleSelect(id);
+                else openLightbox(idx);
+            });
+        });
+
+        if (S.isCloud) S.photos.forEach(p => loadPhotoData(p.id));
+    }
+
+    /* ── Navigation ── */
+    function enterAlbum(id, name) {
+        S.breadcrumbs.push({ id, name });
+        S.albumId = id;
+        S.selectedIds.clear();
+        exitSelectMode();
+        renderBreadcrumb();
+        loadAll();
+    }
+
+    function jumpTo(id) {
+        if (id === null) {
+            S.albumId = null;
+            S.breadcrumbs = [];
+        } else {
+            const idx = S.breadcrumbs.findIndex(b => b.id === id);
+            if (idx >= 0) S.breadcrumbs = S.breadcrumbs.slice(0, idx + 1);
+            S.albumId = id;
+        }
+        S.selectedIds.clear();
+        exitSelectMode();
+        renderBreadcrumb();
+        loadAll();
+    }
+
+    /* ── Select Mode ── */
+    function enterSelectMode() {
+        S.selectMode = true;
+        $('toolbar').classList.add('hidden');
+        $('selectToolbar').classList.remove('hidden');
+        renderPhotos();
+    }
+
+    function exitSelectMode() {
+        S.selectMode = false;
+        S.selectedIds.clear();
+        $('toolbar').classList.remove('hidden');
+        $('selectToolbar').classList.add('hidden');
+        updateSelectCount();
+        renderPhotos();
+    }
+
+    function toggleSelect(id) {
+        if (S.selectedIds.has(id)) S.selectedIds.delete(id);
+        else S.selectedIds.add(id);
+        updateSelectCount();
+        const card = document.querySelector(`.photo-card[data-id="${id}"]`);
+        if (card) {
+            const sel = S.selectedIds.has(id);
+            card.classList.toggle('selected', sel);
+            card.querySelector('.photo-check').textContent = sel ? '✓' : '';
+        }
+    }
+
+    function updateSelectCount() {
+        const n = S.selectedIds.size;
+        $('selectCount').textContent = `已选 ${n} 张`;
+        $('deleteSelectedBtn').disabled = n === 0;
+    }
+
+    /* ── Photo Operations ── */
+    async function loadPhotoData(id) {
+        if (S.photoCache[id]) {
+            applyPhotoCache(id);
+            return;
+        }
+        try {
+            const res = await fetch(`/api/photos/${id}/data`).then(r => r.json());
+            if (res.data) { S.photoCache[id] = res.data; applyPhotoCache(id); }
+        } catch (_) {}
+    }
+
+    function applyPhotoCache(id) {
+        const img = document.querySelector(`.photo-card[data-id="${id}"] img`);
+        if (img && S.photoCache[id]) img.src = `data:image/jpeg;base64,${S.photoCache[id]}`;
+    }
+
+    async function deleteSinglePhoto(id) {
+        if (!confirm('确定删除这张照片？')) return;
+        try {
+            const res = await fetch(`/api/photos/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error((await res.json()).error || '删除失败');
+            delete S.photoCache[id];
+            S.photos = S.photos.filter(p => p.id !== id);
+            renderPhotos();
+            toast('照片已删除');
+        } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteSelectedPhotos() {
+        const ids = [...S.selectedIds];
+        if (!ids.length) return;
+        if (!confirm(`确定删除选中的 ${ids.length} 张照片？`)) return;
+        let ok = 0, fail = 0;
+        for (const id of ids) {
+            try {
+                await fetch(`/api/photos/${id}`, { method: 'DELETE' });
+                delete S.photoCache[id];
+                ok++;
+            } catch (_) { fail++; }
+        }
+        await loadPhotos();
+        exitSelectMode();
+        toast(fail ? `已删除 ${ok} 张，${fail} 张失败` : `已删除 ${ok} 张照片`);
+    }
+
+    /* ── Album Operations ── */
+    async function deleteAlbum(id, name) {
+        if (!confirm(`确定删除相册「${name}」及其所有照片和子相册？此操作不可恢复。`)) return;
+        try {
+            const res = await fetch(`/api/albums/${id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error((await res.json()).error || '删除失败');
+            S.albums = S.albums.filter(a => a.id !== id);
+            renderAlbums();
+            toast(`相册「${name}」已删除`);
+        } catch (e) { toast(e.message, true); }
+    }
+
+    /* ── Lightbox ── */
+    function openLightbox(idx) {
+        S.lbIndex = idx;
+        showLightboxPhoto();
+        $('lightbox').classList.add('open');
+    }
+
+    function showLightboxPhoto() {
+        const p = S.photos[S.lbIndex];
+        if (!p) return;
+        const img = $('lightboxImg');
+        img.src = '';
+        if (S.isCloud) {
+            if (S.photoCache[p.id]) {
+                img.src = `data:image/jpeg;base64,${S.photoCache[p.id]}`;
+            } else {
+                fetch(`/api/photos/${p.id}/data`).then(r => r.json()).then(d => {
+                    if (d.data) { S.photoCache[p.id] = d.data; img.src = `data:image/jpeg;base64,${d.data}`; }
+                }).catch(() => {});
+            }
+        } else {
+            img.src = `/uploads/${p.filename}`;
+        }
+        $('lightboxCaption').textContent = p.description || '';
+        $('lightboxPrev').style.visibility = S.lbIndex > 0 ? 'visible' : 'hidden';
+        $('lightboxNext').style.visibility = S.lbIndex < S.photos.length - 1 ? 'visible' : 'hidden';
+    }
+
+    function closeLightbox() {
+        $('lightbox').classList.remove('open');
+        setTimeout(() => { $('lightboxImg').src = ''; }, 300);
+    }
+
+    /* ── Upload ── */
+    function openUploadModal() {
+        S.uploadFiles = [];
+        $('uploadQueue').innerHTML = '';
+        $('uploadQueue').classList.add('hidden');
+        $('uploadPlaceholder').classList.remove('hidden');
+        $('uploadProgressBar').classList.add('hidden');
+        $('startUploadBtn').disabled = true;
+        $('startUploadBtn').textContent = '开始上传';
+        $('fileInput').value = '';
+        $('uploadModal').classList.remove('hidden');
+    }
+
+    function handleFileSelect(files) {
+        const arr = Array.from(files).filter(f => f.type.startsWith('image/'));
+        if (!arr.length) return;
+        S.uploadFiles = arr;
+        $('uploadPlaceholder').classList.add('hidden');
+        const q = $('uploadQueue');
+        q.classList.remove('hidden');
+        q.innerHTML = arr.map((f, i) => `
+            <div class="upload-item" id="up-item-${i}">
+                <span class="upload-item-name">${esc(f.name)}</span>
+                <span class="upload-item-size">${(f.size/1024/1024).toFixed(1)} MB</span>
+                <span class="upload-item-status" id="up-st-${i}">等待中</span>
+            </div>`).join('');
+        $('startUploadBtn').disabled = false;
+    }
+
+    async function startUpload() {
+        const btn = $('startUploadBtn');
+        btn.disabled = true;
+        btn.textContent = '上传中…';
+        $('cancelUploadBtn').disabled = true;
+        const bar = $('uploadProgressBar');
+        const fill = $('uploadProgressFill');
+        bar.classList.remove('hidden');
+
+        let ok = 0, fail = 0;
+        for (let i = 0; i < S.uploadFiles.length; i++) {
+            const file = S.uploadFiles[i];
+            const st = $(`up-st-${i}`);
+            const item = $(`up-item-${i}`);
+            st.textContent = '上传中…';
+            item.classList.add('uploading');
+            try {
+                if (S.isCloud) {
+                    const b64 = await fileToBase64(file);
+                    const r = await fetch('/api/photos/upload', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: file.name, data_base64: b64, description: '', album_id: S.albumId }),
+                    });
+                    if (!r.ok) throw new Error();
+                } else {
+                    const fd = new FormData();
+                    fd.append('photo', file);
+                    fd.append('description', '');
+                    if (S.albumId != null) fd.append('album_id', S.albumId);
+                    const r = await fetch('/api/photos/upload', { method: 'POST', body: fd });
+                    if (!r.ok) throw new Error((await r.json()).error || '上传失败');
+                }
+                st.textContent = '✓ 完成';
+                item.classList.remove('uploading');
+                item.classList.add('done');
+                ok++;
+            } catch (e) {
+                st.textContent = '✗ 失败';
+                item.classList.remove('uploading');
+                item.classList.add('error');
+                fail++;
+            }
+            fill.style.width = `${Math.round((i + 1) / S.uploadFiles.length * 100)}%`;
+        }
+
+        await loadPhotos();
+        btn.textContent = '完成 ✓';
+        $('cancelUploadBtn').disabled = false;
+        setTimeout(() => {
+            $('uploadModal').classList.add('hidden');
+            toast(fail ? `上传完成：${ok} 成功，${fail} 失败` : `已上传 ${ok} 张照片 📷`);
+        }, 600);
+    }
+
     function fileToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
+            reader.onload = e => resolve(e.target.result.split(',')[1]);
             reader.onerror = reject;
             reader.readAsDataURL(file);
         });
     }
 
-    function escapeHtml(str) {
-        return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    }
+    /* ── UI Setup ── */
+    function setupUI() {
+        // 新建相册
+        $('newAlbumBtn').addEventListener('click', () => {
+            $('albumNameInput').value = '';
+            $('albumDescInput').value = '';
+            $('newAlbumSubtitle').textContent = S.albumId != null ? '将在当前相册内创建子相册' : '将在根目录创建相册';
+            $('newAlbumModal').classList.remove('hidden');
+            setTimeout(() => $('albumNameInput').focus(), 50);
+        });
+        $('cancelAlbumBtn').addEventListener('click', () => $('newAlbumModal').classList.add('hidden'));
+        $('newAlbumModal').addEventListener('click', e => { if (e.target === $('newAlbumModal')) $('newAlbumModal').classList.add('hidden'); });
+        $('albumNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('createAlbumBtn').click(); });
+        $('createAlbumBtn').addEventListener('click', async () => {
+            const name = $('albumNameInput').value.trim();
+            if (!name) { $('albumNameInput').focus(); $('albumNameInput').style.borderColor = 'var(--rose)'; return; }
+            $('albumNameInput').style.borderColor = '';
+            $('createAlbumBtn').disabled = true;
+            try {
+                const r = await fetch('/api/albums', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, description: $('albumDescInput').value.trim(), parent_id: S.albumId }),
+                });
+                if (!r.ok) throw new Error((await r.json()).error || '创建失败');
+                $('newAlbumModal').classList.add('hidden');
+                toast(`相册「${name}」已创建`);
+                await loadAlbums();
+            } catch (e) { toast(e.message, true); }
+            finally { $('createAlbumBtn').disabled = false; }
+        });
 
-    function toast(msg) {
-        const c = document.getElementById('toastContainer');
-        const el = document.createElement('div');
-        el.className = 'toast';
-        el.textContent = msg;
-        c.appendChild(el);
-        setTimeout(() => el.remove(), 2500);
+        // 上传
+        $('uploadBtn').addEventListener('click', openUploadModal);
+        $('cancelUploadBtn').addEventListener('click', () => $('uploadModal').classList.add('hidden'));
+        $('uploadModal').addEventListener('click', e => { if (e.target === $('uploadModal')) $('uploadModal').classList.add('hidden'); });
+        $('startUploadBtn').addEventListener('click', startUpload);
+        const dz = $('uploadDropZone');
+        dz.addEventListener('click', () => $('fileInput').click());
+        $('fileInput').addEventListener('change', e => handleFileSelect(e.target.files));
+        dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+        dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+        dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFileSelect(e.dataTransfer.files); });
+
+        // 选择模式
+        $('selectModeBtn').addEventListener('click', enterSelectMode);
+        $('selectAllBtn').addEventListener('click', () => {
+            S.photos.forEach(p => S.selectedIds.add(p.id));
+            updateSelectCount();
+            renderPhotos();
+        });
+        $('deleteSelectedBtn').addEventListener('click', deleteSelectedPhotos);
+        $('cancelSelectBtn').addEventListener('click', exitSelectMode);
+
+        // Lightbox
+        $('lightboxClose').addEventListener('click', closeLightbox);
+        $('lightbox').addEventListener('click', e => { if (e.target === $('lightbox')) closeLightbox(); });
+        $('lightboxPrev').addEventListener('click', e => { e.stopPropagation(); if (S.lbIndex > 0) { S.lbIndex--; showLightboxPhoto(); } });
+        $('lightboxNext').addEventListener('click', e => { e.stopPropagation(); if (S.lbIndex < S.photos.length - 1) { S.lbIndex++; showLightboxPhoto(); } });
+        document.addEventListener('keydown', e => {
+            if (!$('lightbox').classList.contains('open')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft' && S.lbIndex > 0) { S.lbIndex--; showLightboxPhoto(); }
+            if (e.key === 'ArrowRight' && S.lbIndex < S.photos.length - 1) { S.lbIndex++; showLightboxPhoto(); }
+        });
     }
     </script>
 </body>

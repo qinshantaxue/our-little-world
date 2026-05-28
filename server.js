@@ -86,7 +86,10 @@ async function initSQLite() {
     CREATE TABLE IF NOT EXISTS diary (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT DEFAULT '', content TEXT NOT NULL, entry_date TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now','localtime')));
     CREATE TABLE IF NOT EXISTS timeline (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, description TEXT DEFAULT '', event_date TEXT NOT NULL, created_at TEXT DEFAULT (datetime('now','localtime')));
     CREATE TABLE IF NOT EXISTS photos (id INTEGER PRIMARY KEY AUTOINCREMENT, filename TEXT NOT NULL, original_name TEXT NOT NULL, description TEXT DEFAULT '', created_at TEXT DEFAULT (datetime('now','localtime')));
+    CREATE TABLE IF NOT EXISTS bucket_list (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, description TEXT DEFAULT '', is_completed INTEGER DEFAULT 0, completed_at TEXT, created_at TEXT DEFAULT (datetime('now','localtime')));
   `);
+  db.run(`CREATE TABLE IF NOT EXISTS albums (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, description TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, created_at TEXT DEFAULT (datetime('now','localtime')))`);
+  try { db.run('ALTER TABLE photos ADD COLUMN album_id INTEGER DEFAULT NULL'); } catch (_) {}
   saveSQLite();
 }
 
@@ -106,7 +109,10 @@ async function initPostgres() {
     CREATE TABLE IF NOT EXISTS diary (id SERIAL PRIMARY KEY, title TEXT DEFAULT '', content TEXT NOT NULL, entry_date DATE NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS timeline (id SERIAL PRIMARY KEY, title TEXT NOT NULL, description TEXT DEFAULT '', event_date DATE NOT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE IF NOT EXISTS photos (id SERIAL PRIMARY KEY, filename TEXT NOT NULL, original_name TEXT NOT NULL, description TEXT DEFAULT '', data_base64 TEXT NOT NULL DEFAULT '', created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS bucket_list (id SERIAL PRIMARY KEY, title TEXT NOT NULL, description TEXT DEFAULT '', is_completed BOOLEAN DEFAULT FALSE, completed_at TIMESTAMP, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE IF NOT EXISTS albums (id SERIAL PRIMARY KEY, name TEXT NOT NULL, description TEXT DEFAULT '', parent_id INTEGER DEFAULT NULL, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
   `);
+  try { await db.query('ALTER TABLE photos ADD COLUMN IF NOT EXISTS album_id INTEGER DEFAULT NULL'); } catch (_) {}
 }
 
 // ── ============================================================
@@ -115,6 +121,11 @@ async function initPostgres() {
 
 app.use(express.json({ limit: '50mb' }));
 app.use(express.static(__dirname));
+
+// ── 告知前端当前模式 ──
+app.get('/api/mode', (req, res) => {
+  res.json({ mode: IS_CLOUD ? 'cloud' : 'local' });
+});
 
 // ── Multer（仅本地模式使用）──────────────────────────────────
 const storage = multer.diskStorage({
@@ -147,7 +158,7 @@ app.get('/api/settings', async (req, res) => {
 app.put('/api/settings', async (req, res) => {
   const { key, value } = req.body;
   if (!key) return res.status(400).json({ error: 'key 不能为空' });
-  await runSql('INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=$2', [key, value ?? '']);
+  await runSql('INSERT INTO settings (key, value) VALUES ($1,$2) ON CONFLICT (key) DO UPDATE SET value=excluded.value', [key, value ?? '']);
   res.json({ success: true });
 });
 
@@ -203,13 +214,66 @@ app.delete('/api/timeline/:id', async (req, res) => {
   res.json({ success: true });
 });
 
+// ── Bucket List ──
+app.get('/api/bucketlist', async (req, res) => {
+  const items = await queryAll('SELECT * FROM bucket_list ORDER BY is_completed ASC, created_at DESC');
+  // SQLite 用 0/1，PostgreSQL 用 true/false，统一成 boolean
+  items.forEach(i => i.is_completed = !!i.is_completed);
+  res.json(items);
+});
+
+app.post('/api/bucketlist', async (req, res) => {
+  const { title, description } = req.body;
+  if (!title?.trim()) return res.status(400).json({ error: '标题不能为空' });
+  const id = await runSql('INSERT INTO bucket_list (title, description) VALUES ($1,$2) RETURNING id', [title.trim(), description?.trim()||'']);
+  res.json(await queryOne('SELECT * FROM bucket_list WHERE id = $1', [id]));
+});
+
+app.put('/api/bucketlist/:id', async (req, res) => {
+  const item = await queryOne('SELECT * FROM bucket_list WHERE id = $1', [req.params.id]);
+  if (!item) return res.status(404).json({ error: '不存在' });
+  const newStatus = !item.is_completed;
+  const now = isPostgres
+    ? 'NOW()'
+    : "datetime('now','localtime')";
+  if (newStatus) {
+    await runSql(`UPDATE bucket_list SET is_completed=$1, completed_at=${now} WHERE id=$2`, [isPostgres ? true : 1, req.params.id]);
+  } else {
+    await runSql('UPDATE bucket_list SET is_completed=$1, completed_at=NULL WHERE id=$2', [isPostgres ? false : 0, req.params.id]);
+  }
+  const updated = await queryOne('SELECT * FROM bucket_list WHERE id = $1', [req.params.id]);
+  if (updated) updated.is_completed = !!updated.is_completed;
+  res.json(updated);
+});
+
+app.delete('/api/bucketlist/:id', async (req, res) => {
+  await runSql('DELETE FROM bucket_list WHERE id = $1', [req.params.id]);
+  res.json({ success: true });
+});
+
 // ── Photos ──
 app.get('/api/photos', async (req, res) => {
+  const { album_id } = req.query;
+  let sql, params;
+  if (album_id != null) {
+    sql = 'SELECT * FROM photos WHERE album_id = $1 ORDER BY created_at DESC';
+    params = [album_id];
+  } else {
+    sql = 'SELECT * FROM photos ORDER BY created_at DESC';
+    params = [];
+  }
   if (IS_CLOUD) {
-    const photos = await queryAll('SELECT id, original_name, description, created_at FROM photos ORDER BY created_at DESC');
+    const photos = await queryAll(sql.replace('SELECT *', 'SELECT id, original_name, description, album_id, created_at'), params);
     return res.json(photos);
   }
-  res.json(await queryAll('SELECT * FROM photos ORDER BY created_at DESC'));
+  res.json(await queryAll(sql, params));
+});
+
+app.get('/api/photos/random', async (req, res) => {
+  const count = Math.min(parseInt(req.query.count) || 5, 10);
+  const cols = IS_CLOUD ? 'id, original_name, description' : 'id, filename, original_name, description';
+  const photos = await queryAll(`SELECT ${cols} FROM photos ORDER BY RANDOM() LIMIT ${count}`, []);
+  res.json(photos);
 });
 
 app.get('/api/photos/:id/data', async (req, res) => {
@@ -221,21 +285,21 @@ app.get('/api/photos/:id/data', async (req, res) => {
 
 app.post('/api/photos/upload', async (req, res) => {
   if (IS_CLOUD) {
-    const { name, data_base64, description } = req.body;
+    const { name, data_base64, description, album_id } = req.body;
     if (!name || !data_base64) return res.status(400).json({ error: '请选择照片' });
     const id = await runSql(
-      'INSERT INTO photos (filename, original_name, description, data_base64) VALUES ($1,$2,$3,$4) RETURNING id',
-      [Date.now()+'.jpg', name, description?.trim()||'', data_base64]
+      'INSERT INTO photos (filename, original_name, description, data_base64, album_id) VALUES ($1,$2,$3,$4,$5) RETURNING id',
+      [Date.now() + '.jpg', name, description?.trim() || '', data_base64, album_id || null]
     );
-    return res.json(await queryOne('SELECT id, original_name, description, created_at FROM photos WHERE id = $1', [id]));
+    return res.json(await queryOne('SELECT id, original_name, description, album_id, created_at FROM photos WHERE id = $1', [id]));
   }
-  // 本地模式
   upload.single('photo')(req, res, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: '请选择照片' });
-    const id = await runSql('INSERT INTO photos (filename, original_name, description) VALUES ($1,$2,$3) RETURNING id', [
-      req.file.filename, req.file.originalname, req.body.description?.trim()||''
-    ]);
+    const id = await runSql(
+      'INSERT INTO photos (filename, original_name, description, album_id) VALUES ($1,$2,$3,$4) RETURNING id',
+      [req.file.filename, req.file.originalname, req.body.description?.trim() || '', req.body.album_id || null]
+    );
     res.json(await queryOne('SELECT * FROM photos WHERE id = $1', [id]));
   });
 });
@@ -250,6 +314,129 @@ app.delete('/api/photos/:id', async (req, res) => {
   }
   await runSql('DELETE FROM photos WHERE id = $1', [req.params.id]);
   res.json({ success: true });
+});
+
+// ── Albums ──
+async function deleteAlbumCascade(albumId) {
+  if (!IS_CLOUD) {
+    const photos = await queryAll('SELECT * FROM photos WHERE album_id = $1', [albumId]);
+    for (const p of photos) {
+      const fp = path.join(uploadsDir, p.filename);
+      if (fs.existsSync(fp)) fs.unlinkSync(fp);
+    }
+  }
+  await runSql('DELETE FROM photos WHERE album_id = $1', [albumId]);
+  const subs = await queryAll('SELECT id FROM albums WHERE parent_id = $1', [albumId]);
+  for (const sub of subs) await deleteAlbumCascade(sub.id);
+  await runSql('DELETE FROM albums WHERE id = $1', [albumId]);
+}
+
+app.get('/api/albums', async (req, res) => {
+  const { parent_id } = req.query;
+  let albums;
+  if (parent_id === undefined || parent_id === 'null' || parent_id === '') {
+    albums = await queryAll('SELECT * FROM albums WHERE parent_id IS NULL ORDER BY created_at ASC', []);
+  } else {
+    albums = await queryAll('SELECT * FROM albums WHERE parent_id = $1 ORDER BY created_at ASC', [parent_id]);
+  }
+  for (const a of albums) {
+    const pc = await queryOne('SELECT COUNT(*) AS cnt FROM photos WHERE album_id = $1', [a.id]);
+    a.photo_count = parseInt(pc?.cnt || 0);
+    const sc = await queryOne('SELECT COUNT(*) AS cnt FROM albums WHERE parent_id = $1', [a.id]);
+    a.sub_count = parseInt(sc?.cnt || 0);
+    if (!IS_CLOUD) {
+      const cover = await queryOne('SELECT filename FROM photos WHERE album_id = $1 LIMIT 1', [a.id]);
+      a.cover_filename = cover?.filename || null;
+    } else {
+      const cover = await queryOne('SELECT id FROM photos WHERE album_id = $1 LIMIT 1', [a.id]);
+      a.cover_photo_id = cover?.id || null;
+    }
+  }
+  res.json(albums);
+});
+
+app.post('/api/albums', async (req, res) => {
+  const { name, description, parent_id } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: '请输入相册名称' });
+  const id = await runSql(
+    'INSERT INTO albums (name, description, parent_id) VALUES ($1,$2,$3) RETURNING id',
+    [name.trim(), description?.trim() || '', parent_id || null]
+  );
+  res.json(await queryOne('SELECT * FROM albums WHERE id = $1', [id]));
+});
+
+app.put('/api/albums/:id', async (req, res) => {
+  const { name, description } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: '请输入相册名称' });
+  await runSql('UPDATE albums SET name=$1, description=$2 WHERE id=$3',
+    [name.trim(), description?.trim() || '', req.params.id]);
+  res.json(await queryOne('SELECT * FROM albums WHERE id = $1', [req.params.id]));
+});
+
+app.delete('/api/albums/:id', async (req, res) => {
+  await deleteAlbumCascade(req.params.id);
+  res.json({ success: true });
+});
+
+// ── Miss You ──
+app.post('/api/miss-you', async (req, res) => {
+  try {
+    const rows = await queryAll('SELECT key, value FROM settings');
+    const cfg = {};
+    rows.forEach(r => cfg[r.key] = r.value);
+
+    const toEmail = cfg.miss_you_email;
+    if (!toEmail) {
+      return res.status(400).json({ code: 'NO_EMAIL', error: '请先设置对方的邮箱地址' });
+    }
+
+    const resendKey = process.env.RESEND_API_KEY || cfg.resend_api_key;
+    if (!resendKey) {
+      return res.status(400).json({ code: 'NO_SENDER', error: '请先在配置中填入 Resend API Key' });
+    }
+
+    const timeStr = new Date().toLocaleString('zh-CN', {
+      timeZone: 'Asia/Shanghai', year: 'numeric', month: 'long',
+      day: 'numeric', hour: '2-digit', minute: '2-digit',
+    });
+
+    const emailHtml = `
+      <div style="max-width:480px;margin:32px auto;font-family:'PingFang SC','Microsoft YaHei',sans-serif;border-radius:20px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.10);">
+        <div style="background:linear-gradient(135deg,#D4878F 0%,#9B5C63 100%);padding:44px 36px;text-align:center;">
+          <div style="font-size:60px;line-height:1;margin-bottom:14px;">♡</div>
+          <h1 style="color:#fff;font-size:28px;margin:0;font-weight:600;letter-spacing:0.02em;">我想你了宝宝</h1>
+        </div>
+        <div style="background:#FDF8F6;padding:36px;text-align:center;">
+          <p style="font-size:16px;line-height:2;color:#8A7070;margin:0 0 24px;">
+            在 <strong style="color:#9B5C63;">${timeStr}</strong>，<br>
+            有人点了"我想你了宝宝"按钮，<br>
+            那个人非常非常想念你 ♡
+          </p>
+          <div style="background:#FBF0F1;border:1px solid #EDD5D8;border-radius:12px;padding:18px 24px;">
+            <p style="margin:0;color:#9B5C63;font-size:15px;">💌 去看看你们的小世界吧~</p>
+          </div>
+        </div>
+        <div style="background:#FDF8F6;padding:16px 36px 28px;text-align:center;border-top:1px solid #EDE0E2;">
+          <p style="margin:0;font-size:12px;color:#C5A5A7;">— 我们的小世界 · 只属于你们两个人 —</p>
+        </div>
+      </div>
+    `;
+
+    const resp = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${resendKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'onboarding@resend.dev', to: [toEmail], subject: '💕 我想你了宝宝', html: emailHtml }),
+    });
+    if (!resp.ok) {
+      const errBody = await resp.json().catch(() => ({}));
+      throw new Error(errBody.message || `Resend HTTP ${resp.status}`);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('miss-you 发送失败:', err.message);
+    res.status(500).json({ error: '发送失败：' + err.message });
+  }
 });
 
 // ── ============================================================

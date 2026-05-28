@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         initNav();
         initScrollAnimations();
         updateDisplay();
+        initPhotoSlideshow();
     });
 
     const yearEl = document.getElementById('currentYear');
@@ -164,6 +165,47 @@ function initNav() {
             toggle?.classList.remove('active');
         })
     );
+}
+
+// ── Homepage Photo Slideshow ──────────────────────────────────
+async function initPhotoSlideshow() {
+    const card = document.querySelector('.vis-card-front');
+    if (!card) return;
+    try {
+        const [modeRes, photosRes] = await Promise.all([
+            fetch('/api/mode').then(r => r.json()).catch(() => ({ mode: 'local' })),
+            fetch('/api/photos/random?count=8').then(r => r.json()).catch(() => []),
+        ]);
+        if (!photosRes.length) return;
+        const isCloud = modeRes.mode === 'cloud';
+        let idx = 0;
+
+        async function getPhotoSrc(p) {
+            if (!isCloud) return `/uploads/${p.filename}`;
+            const res = await fetch(`/api/photos/${p.id}/data`).then(r => r.json()).catch(() => ({}));
+            return res.data ? `data:image/jpeg;base64,${res.data}` : null;
+        }
+
+        async function showSlide(i) {
+            const p = photosRes[i];
+            const src = await getPhotoSrc(p);
+            if (!src) return;
+            card.innerHTML = `
+                <div class="slideshow-wrap">
+                    <img src="${src}" alt="${(p.description || p.original_name || '').replace(/"/g,'&quot;')}" class="slideshow-img">
+                    ${p.description ? `<div class="slideshow-caption">${p.description}</div>` : ''}
+                </div>`;
+        }
+
+        await showSlide(0);
+
+        if (photosRes.length > 1) {
+            setInterval(() => {
+                idx = (idx + 1) % photosRes.length;
+                showSlide(idx);
+            }, 5000);
+        }
+    } catch (_) {}
 }
 
 // ── Scroll-triggered Fade-up Animations ───────────────────────

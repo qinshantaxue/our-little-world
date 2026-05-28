@@ -485,15 +485,298 @@
     background: rgba(255,255,255,0.3);
 }
 
+/* ── Albums Page ── */
+.albums-content { max-width: 1100px; }
+
+.album-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+.bc-item { color: var(--text-muted); }
+.bc-link {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 14px;
+    color: var(--rose);
+    padding: 0;
+    transition: color var(--ease);
+}
+.bc-link:hover { color: var(--rose-dark); text-decoration: underline; }
+.bc-current { color: var(--text); font-weight: 500; }
+.bc-sep { color: var(--border); font-size: 16px; }
+
+.album-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+.toolbar-left { display: flex; gap: 10px; flex-wrap: wrap; }
+
+.btn-sm { padding: 9px 18px; font-size: 13px; }
+.btn-danger {
+    background: #E57373;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(229, 115, 115, 0.3);
+}
+.btn-danger:hover { background: #C62828; transform: translateY(-1px); }
+.btn-danger:disabled { opacity: 0.45; pointer-events: none; }
+
+.select-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding: 12px 18px;
+    background: var(--rose-pale);
+    border: 1px solid var(--rose-light);
+    border-radius: var(--radius-md);
+    flex-wrap: wrap;
+}
+.select-count { font-size: 14px; font-weight: 500; color: var(--rose-dark); }
+
+.section-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    margin-top: 8px;
+}
+
+/* ── Album Cards ── */
+.albums-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 40px;
+}
+.album-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--ease), box-shadow var(--ease);
+    position: relative;
+    cursor: pointer;
+}
+.album-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+.album-cover {
+    width: 100%;
+    aspect-ratio: 1;
+    overflow: hidden;
+    background: linear-gradient(135deg, var(--rose-pale), var(--rose-light));
+}
+.album-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+.album-card:hover .album-cover img { transform: scale(1.06); }
+.album-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+}
+.album-info { padding: 12px 14px 10px; }
+.album-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: pointer;
+}
+.album-name:hover { color: var(--rose); }
+.album-meta { font-size: 12px; color: var(--text-muted); }
+.album-del-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(0,0,0,0.45);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity var(--ease), background var(--ease);
+    z-index: 2;
+}
+.album-card:hover .album-del-btn { opacity: 1; }
+.album-del-btn:hover { background: rgba(220, 60, 60, 0.85); }
+
+/* ── Photo Cards (updated) ── */
+.photo-del-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s ease, background 0.2s ease;
+    z-index: 5;
+}
+.photo-card:hover .photo-del-btn { opacity: 1; }
+.photo-del-btn:hover { background: rgba(200, 40, 40, 0.8); }
+@media (hover: none) {
+    .photo-del-btn { opacity: 0.7; }
+}
+
+.photo-check {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.7);
+    background: rgba(0,0,0,0.25);
+    color: #fff;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s, background 0.2s, border-color 0.2s;
+    z-index: 5;
+    pointer-events: none;
+}
+.photo-card.selectable .photo-check { opacity: 1; }
+.photo-card.selected .photo-check {
+    background: var(--rose);
+    border-color: var(--rose);
+}
+.photo-card.selected { outline: 3px solid var(--rose); outline-offset: -3px; }
+.photo-card.selectable { cursor: default; }
+
+/* ── Upload Modal ── */
+.upload-modal { max-width: 520px; }
+.upload-drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    background: var(--cream);
+    cursor: pointer;
+    transition: border-color var(--ease), background var(--ease);
+    min-height: 140px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+.upload-drop-zone:hover, .upload-drop-zone.drag-over {
+    border-color: var(--rose);
+    background: var(--rose-pale);
+}
+.upload-placeholder { text-align: center; padding: 20px; }
+.upload-queue {
+    width: 100%;
+    max-height: 240px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+}
+.upload-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--white);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 13px;
+}
+.upload-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.upload-item-size { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.upload-item-status { font-size: 12px; white-space: nowrap; color: var(--text-muted); }
+.upload-item.uploading .upload-item-status { color: var(--rose); }
+.upload-item.done .upload-item-status { color: #4CAF50; }
+.upload-item.error .upload-item-status { color: #E53935; }
+.upload-progress-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    margin-top: 12px;
+    overflow: hidden;
+}
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--rose-light), var(--rose));
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+/* ── Lightbox (updated) ── */
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(255,255,255,0.15);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 48px;
+    height: 48px;
+    font-size: 28px;
+    cursor: pointer;
+    transition: background var(--ease);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+.lightbox-nav:hover { background: rgba(255,255,255,0.3); }
+.lightbox-prev { left: 20px; }
+.lightbox-next { right: 20px; }
+.lightbox-caption {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255,255,255,0.85);
+    font-size: 14px;
+    text-align: center;
+    max-width: 80%;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+
 /* responsive */
 @media (max-width: 640px) {
-    .notes-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .photo-grid {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    }
-    .form-row {
-        flex-direction: column;
-    }
+    .notes-grid { grid-template-columns: 1fr 1fr; }
+    .photo-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .albums-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+    .form-row { flex-direction: column; }
+    .lightbox-nav { width: 36px; height: 36px; font-size: 22px; }
+    .lightbox-prev { left: 8px; }
+    .lightbox-next { right: 8px; }
 }
