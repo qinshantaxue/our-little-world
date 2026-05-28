@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日记 — 我们的小世界</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/page.css">
+</head>
+<body>
+    <nav class="nav scrolled" id="mainNav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-brand">
+                <span class="brand-heart">♡</span>
+                <span class="brand-text">我们的小世界</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="photos.html"   class="nav-link">📷 相册</a>
+                <a href="notes.html"    class="nav-link">💌 便签</a>
+                <a href="timeline.html" class="nav-link">📅 时间轴</a>
+                <a href="diary.html"    class="nav-link active">📖 日记</a>
+            </div>
+            <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <main class="page-main">
+        <div class="page-header">
+            <div class="page-icon">📖</div>
+            <h1 class="page-title">日记</h1>
+            <p class="page-subtitle">写下每天的生活点滴</p>
+        </div>
+
+        <div class="page-content">
+            <!-- 写日记 -->
+            <div class="form-card">
+                <div class="form-card-title">✏️ 写一篇新日记</div>
+                <div class="form-row">
+                    <input type="date" class="form-input" id="diaryDate" style="max-width:180px;">
+                    <input type="text" class="form-input" id="diaryTitle" placeholder="标题（可选）">
+                </div>
+                <textarea class="form-textarea" id="diaryContent" placeholder="今天发生了什么？写下你们的故事…" rows="5"></textarea>
+                <div style="margin-top: 12px; text-align: right;">
+                    <button class="btn btn-primary" id="addDiaryBtn">保存日记 →</button>
+                </div>
+            </div>
+
+            <!-- 日记列表 -->
+            <div id="diaryContainer">
+                <div class="empty-state" id="diaryEmpty">
+                    <span class="empty-state-icon">📖</span>
+                    <p>还没有日记，开始记录你们的故事吧</p>
+                </div>
+                <div class="diary-list" id="diaryList" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/nav.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const dateInput    = document.getElementById('diaryDate');
+        const titleInput   = document.getElementById('diaryTitle');
+        const contentInput = document.getElementById('diaryContent');
+        const addBtn       = document.getElementById('addDiaryBtn');
+        const diaryList    = document.getElementById('diaryList');
+        const diaryEmpty   = document.getElementById('diaryEmpty');
+
+        // 默认今天日期
+        dateInput.value = new Date().toISOString().slice(0, 10);
+
+        async function loadDiary() {
+            try {
+                const entries = await API.getDiary();
+                renderEntries(entries);
+            } catch (e) {
+                toast('⚠️ 加载失败：' + e.message);
+            }
+        }
+
+        function renderEntries(entries) {
+            if (!entries.length) {
+                diaryList.style.display = 'none';
+                diaryEmpty.style.display = 'block';
+                return;
+            }
+            diaryEmpty.style.display = 'none';
+            diaryList.style.display = 'block';
+
+            diaryList.innerHTML = entries.map(e => `
+                <div class="diary-entry">
+                    <div class="diary-entry-header">
+                        <span class="diary-entry-date">${formatDate(e.entry_date)}</span>
+                        <span class="diary-entry-title">${e.title ? escapeHtml(e.title) : '无题'}</span>
+                    </div>
+                    <div class="diary-entry-content" onclick="this.classList.toggle('expanded')">${escapeHtml(e.content)}</div>
+                    <div class="diary-entry-actions">
+                        <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="deleteDiary(${e.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.deleteDiary = async (id) => {
+            if (!confirm('确定删除这篇日记吗？')) return;
+            try {
+                await API.deleteDiary(id);
+                loadDiary();
+                toast('已删除');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        };
+
+        addBtn.addEventListener('click', async () => {
+            const content = contentInput.value.trim();
+            if (!content) {
+                contentInput.focus();
+                contentInput.style.borderColor = '#D4878F';
+                setTimeout(() => contentInput.style.borderColor = '', 1500);
+                return;
+            }
+            try {
+                await API.addDiaryEntry({
+                    title: titleInput.value.trim(),
+                    content,
+                    entry_date: dateInput.value
+                });
+                titleInput.value = '';
+                contentInput.value = '';
+                dateInput.value = new Date().toISOString().slice(0, 10);
+                toast('📖 日记已保存！');
+                loadDiary();
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        });
+
+        loadDiary();
+    });
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function formatDate(d) {
+        if (!d) return '';
+        const date = new Date(d + 'T00:00:00');
+        return date.toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' });
+    }
+
+    function toast(msg) {
+        const c = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = msg;
+        c.appendChild(el);
+        setTimeout(() => el.remove(), 2500);
+    }
+    </script>
+</body>
+</html>

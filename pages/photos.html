@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>相册 — 我们的小世界</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/page.css">
+</head>
+<body>
+    <nav class="nav scrolled" id="mainNav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-brand">
+                <span class="brand-heart">♡</span>
+                <span class="brand-text">我们的小世界</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="photos.html"   class="nav-link active">📷 相册</a>
+                <a href="notes.html"    class="nav-link">💌 便签</a>
+                <a href="timeline.html" class="nav-link">📅 时间轴</a>
+                <a href="diary.html"    class="nav-link">📖 日记</a>
+            </div>
+            <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <main class="page-main">
+        <div class="page-header">
+            <div class="page-icon">📷</div>
+            <h1 class="page-title">相册</h1>
+            <p class="page-subtitle">上传并整理你们之间最珍贵的照片</p>
+        </div>
+
+        <div class="page-content">
+            <!-- 上传照片 -->
+            <div class="form-card">
+                <div class="form-card-title">📤 上传新照片</div>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label" for="photoUpload">选择照片</label>
+                        <input type="file" class="form-input" id="photoUpload" accept="image/*" style="padding:10px 16px;">
+                    </div>
+                    <div style="flex:1; min-width:200px;">
+                        <label class="form-label" for="photoDesc">描述（可选）</label>
+                        <input type="text" class="form-input" id="photoDesc" placeholder="这张照片的故事…">
+                    </div>
+                    <button class="btn btn-primary" id="uploadBtn" style="white-space:nowrap;">上传</button>
+                </div>
+                <div id="uploadProgress" style="display:none; margin-top:12px; font-size:14px; color:var(--text-muted);">⏳ 上传中…</div>
+            </div>
+
+            <!-- 照片列表 -->
+            <div id="photoContainer">
+                <div class="empty-state" id="photoEmpty">
+                    <span class="empty-state-icon">📷</span>
+                    <p>还没有照片，上传你们的第一张合照吧</p>
+                </div>
+                <div class="photo-grid" id="photoGrid" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" onclick="closeLightbox()">
+        <button class="lightbox-close" onclick="event.stopPropagation();closeLightbox()">✕</button>
+        <img id="lightboxImg" src="" alt="">
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/nav.js"></script>
+    <script>
+    // ── 自动检测模式 ──
+    // 本地模式：/uploads/filename  云端模式：通过 API 获取 base64
+    const IS_CLOUD = location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const fileInput   = document.getElementById('photoUpload');
+        const descInput   = document.getElementById('photoDesc');
+        const uploadBtn   = document.getElementById('uploadBtn');
+        const progress    = document.getElementById('uploadProgress');
+        const photoGrid   = document.getElementById('photoGrid');
+        const photoEmpty  = document.getElementById('photoEmpty');
+        const lightbox    = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightboxImg');
+
+        // 缓存已加载的 base64 图片数据
+        const photoCache = {};
+
+        async function loadPhotos() {
+            try {
+                const photos = await API.getPhotos();
+                renderPhotos(photos);
+            } catch (e) {
+                toast('⚠️ 加载失败：' + e.message);
+            }
+        }
+
+        function renderPhotos(photos) {
+            if (!photos.length) {
+                photoGrid.style.display = 'none';
+                photoEmpty.style.display = 'block';
+                return;
+            }
+            photoEmpty.style.display = 'none';
+            photoGrid.style.display = 'grid';
+
+            photoGrid.innerHTML = photos.map(p => {
+                const src = IS_CLOUD
+                    ? `data:image/jpeg;base64,${p.data_base64 || ''}`  // 云端：后续动态加载
+                    : `/uploads/${p.filename}`;
+                return `
+                <div class="photo-card" data-id="${p.id}">
+                    <img src="${src}" alt="${escapeHtml(p.description || p.original_name)}" loading="lazy" onclick="openLightbox(${p.id})">
+                    <button class="photo-card-del" onclick="event.stopPropagation();deletePhoto(${p.id})" title="删除">✕</button>
+                    <div class="photo-card-overlay">
+                        ${p.description ? `<div class="photo-card-desc">${escapeHtml(p.description)}</div>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+
+            // 云端模式：异步加载图片
+            if (IS_CLOUD) {
+                photos.forEach(p => loadPhotoData(p.id));
+            }
+        }
+
+        async function loadPhotoData(id) {
+            if (photoCache[id]) return;
+            try {
+                const res = await API.request('GET', `/api/photos/${id}/data`);
+                if (res.data) {
+                    photoCache[id] = res.data;
+                    const img = document.querySelector(`.photo-card[data-id="${id}"] img`);
+                    if (img) img.src = `data:image/jpeg;base64,${res.data}`;
+                }
+            } catch (_) {}
+        }
+
+        window.deletePhoto = async (id) => {
+            if (!confirm('确定删除这张照片吗？')) return;
+            try {
+                await API.deletePhoto(id);
+                delete photoCache[id];
+                loadPhotos();
+                toast('已删除');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        };
+
+        window.openLightbox = async (id) => {
+            let src;
+            if (IS_CLOUD) {
+                const data = photoCache[id];
+                if (data) {
+                    src = `data:image/jpeg;base64,${data}`;
+                } else {
+                    try {
+                        const res = await API.request('GET', `/api/photos/${id}/data`);
+                        if (res.data) src = `data:image/jpeg;base64,${res.data}`;
+                    } catch (_) {}
+                }
+            } else {
+                const card = document.querySelector(`.photo-card[data-id="${id}"] img`);
+                src = card ? card.src : '';
+            }
+            if (src) {
+                lightboxImg.src = src;
+                lightbox.classList.add('open');
+            }
+        };
+
+        window.closeLightbox = () => {
+            lightbox.classList.remove('open');
+            setTimeout(() => lightboxImg.src = '', 300);
+        };
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        // ── 上传 ──
+        uploadBtn.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                toast('⚠️ 请先选择一张照片');
+                return;
+            }
+
+            progress.style.display = 'block';
+            uploadBtn.disabled = true;
+
+            try {
+                if (IS_CLOUD) {
+                    // 云端模式：转为 base64 发送
+                    const data_base64 = await fileToBase64(file);
+                    await API.uploadPhoto({
+                        name: file.name,
+                        data_base64: data_base64.split(',')[1],
+                        description: descInput.value.trim()
+                    });
+                } else {
+                    // 本地模式：FormData 上传
+                    const formData = new FormData();
+                    formData.append('photo', file);
+                    formData.append('description', descInput.value.trim());
+                    await API.uploadPhoto(formData);
+                }
+                fileInput.value = '';
+                descInput.value = '';
+                toast('📷 照片已上传！');
+                loadPhotos();
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            } finally {
+                progress.style.display = 'none';
+                uploadBtn.disabled = false;
+            }
+        });
+
+        loadPhotos();
+    });
+
+    // ── 工具函数 ──
+    function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function escapeHtml(str) {
+        return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function toast(msg) {
+        const c = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = msg;
+        c.appendChild(el);
+        setTimeout(() => el.remove(), 2500);
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>便签 — 我们的小世界</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/page.css">
+</head>
+<body>
+    <nav class="nav scrolled" id="mainNav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-brand">
+                <span class="brand-heart">♡</span>
+                <span class="brand-text">我们的小世界</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="photos.html"   class="nav-link">📷 相册</a>
+                <a href="notes.html"    class="nav-link active">💌 便签</a>
+                <a href="timeline.html" class="nav-link">📅 时间轴</a>
+                <a href="diary.html"    class="nav-link">📖 日记</a>
+            </div>
+            <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <main class="page-main">
+        <div class="page-header">
+            <div class="page-icon">💌</div>
+            <h1 class="page-title">便签墙</h1>
+            <p class="page-subtitle">随时给对方留下心里话</p>
+        </div>
+
+        <div class="page-content">
+            <!-- 新增便签 -->
+            <div class="form-card">
+                <div class="form-card-title">✏️ 写一张新便签</div>
+                <textarea class="form-textarea" id="noteInput" placeholder="写下你想说的话…&#10;例如：今天想你了 ♡" rows="3"></textarea>
+                <div style="margin-top: 12px; text-align: right;">
+                    <button class="btn btn-primary" id="addNoteBtn">贴上便签 →</button>
+                </div>
+            </div>
+
+            <!-- 便签列表 -->
+            <div id="notesContainer">
+                <div class="empty-state" id="notesEmpty">
+                    <span class="empty-state-icon">💌</span>
+                    <p>还没有便签，写一张给对方吧</p>
+                </div>
+                <div class="notes-grid" id="notesGrid" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/nav.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const noteInput   = document.getElementById('noteInput');
+        const addBtn      = document.getElementById('addNoteBtn');
+        const notesGrid   = document.getElementById('notesGrid');
+        const notesEmpty  = document.getElementById('notesEmpty');
+
+        // 加载便签
+        async function loadNotes() {
+            try {
+                const notes = await API.getNotes();
+                renderNotes(notes);
+            } catch (e) {
+                toast('⚠️ 加载失败：' + e.message);
+            }
+        }
+
+        function renderNotes(notes) {
+            if (!notes.length) {
+                notesGrid.style.display = 'none';
+                notesEmpty.style.display = 'block';
+                return;
+            }
+            notesEmpty.style.display = 'none';
+            notesGrid.style.display = 'grid';
+
+            notesGrid.innerHTML = notes.map(n => `
+                <div class="note-card" data-id="${n.id}">
+                    <div class="note-card-pin"></div>
+                    <div class="note-card-content">${escapeHtml(n.content)}</div>
+                    <div class="note-card-footer">
+                        <span class="note-card-date">${formatTime(n.created_at)}</span>
+                        <button class="note-card-del" onclick="deleteNote(${n.id})" title="删除">✕</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.deleteNote = async (id) => {
+            try {
+                await API.deleteNote(id);
+                loadNotes();
+                toast('已删除');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        };
+
+        addBtn.addEventListener('click', async () => {
+            const content = noteInput.value.trim();
+            if (!content) {
+                noteInput.focus();
+                noteInput.style.borderColor = '#D4878F';
+                setTimeout(() => noteInput.style.borderColor = '', 1500);
+                return;
+            }
+            try {
+                await API.addNote(content);
+                noteInput.value = '';
+                toast('💌 便签已贴上！');
+                loadNotes();
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        });
+
+        // 回车发送
+        noteInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                addBtn.click();
+            }
+        });
+
+        loadNotes();
+    });
+
+    // ── 工具函数 ──
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function formatTime(t) {
+        if (!t) return '';
+        const d = new Date(t.replace(' ', 'T'));
+        const now = new Date();
+        const diff = (now - d) / 1000;
+        if (diff < 60) return '刚刚';
+        if (diff < 3600) return Math.floor(diff/60) + '分钟前';
+        if (diff < 86400) return Math.floor(diff/3600) + '小时前';
+        return d.toLocaleDateString('zh-CN', { month:'short', day:'numeric' });
+    }
+
+    function toast(msg) {
+        const c = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = msg;
+        c.appendChild(el);
+        setTimeout(() => el.remove(), 2500);
+    }
+    </script>
+</body>
+</html>

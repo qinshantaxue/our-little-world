@@ -1,0 +1,16 @@
+{
+  "name": "our-little-world",
+  "version": "1.0.0",
+  "description": "我们的小世界 - 情侣空间 HTTP 服务版",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.13.0",
+    "sql.js": "^1.11.0"
+  }
+}

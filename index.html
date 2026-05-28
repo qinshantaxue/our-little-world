@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我们的小世界</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+    <!-- 首次访问设置弹窗 -->
+    <div class="modal-overlay" id="setupModal">
+        <div class="modal">
+            <div class="modal-icon">♡</div>
+            <h2 class="modal-title">欢迎来到我们的小世界</h2>
+            <p class="modal-subtitle">先告诉我们你们在一起的纪念日吧</p>
+            <div class="form-group">
+                <label class="form-label" for="anniversaryDate">在一起的日期</label>
+                <input type="date" class="form-input" id="anniversaryDate">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="siteName">你们的专属名字（可选）</label>
+                <input type="text" class="form-input" id="siteName" placeholder="例如：小明 & 小红">
+            </div>
+            <button class="btn btn-primary btn-full" id="setupSubmit">开始我们的旅程 →</button>
+        </div>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="nav" id="mainNav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">
+                <span class="brand-heart">♡</span>
+                <span class="brand-text" id="brandText">我们的小世界</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="pages/photos.html" class="nav-link">📷 相册</a>
+                <a href="pages/notes.html" class="nav-link">💌 便签</a>
+                <a href="pages/timeline.html" class="nav-link">📅 时间轴</a>
+                <a href="pages/diary.html" class="nav-link">📖 日记</a>
+            </div>
+            <button class="nav-toggle" id="navToggle" aria-label="菜单">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- 英雄区 -->
+    <section class="hero">
+        <div class="hero-bg">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+            <div class="blob blob-3"></div>
+        </div>
+        <div class="hero-inner">
+            <div class="hero-text">
+                <div class="hero-badge">
+                    <span class="badge-dot"></span>
+                    只属于我们两个人
+                </div>
+                <h1 class="hero-title">
+                    记录我们<br>
+                    <em>每一刻美好</em>
+                </h1>
+                <p class="hero-desc">
+                    照片、便签、回忆与故事<br>
+                    这里是我们共同的小世界
+                </p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-value" id="daysCount">—</div>
+                        <div class="stat-label">在一起的天数</div>
+                    </div>
+                    <div class="stat-sep">✦</div>
+                    <div class="stat">
+                        <div class="stat-value" id="monthsCount">—</div>
+                        <div class="stat-label">美好的月份</div>
+                    </div>
+                </div>
+                <div class="hero-actions">
+                    <a href="pages/photos.html" class="btn btn-primary">开始回忆</a>
+                    <a href="#features" class="btn btn-ghost">了解更多</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="cards-stack">
+                    <div class="vis-card vis-card-back">
+                        <div class="vis-card-content">
+                            <span class="vis-icon">📅</span>
+                            <p class="vis-label">今天</p>
+                            <p class="vis-date" id="todayDate">—</p>
+                        </div>
+                    </div>
+                    <div class="vis-card vis-card-mid">
+                        <div class="vis-card-content">
+                            <span class="vis-icon">💌</span>
+                            <p class="vis-label">最近的便签</p>
+                            <p class="vis-note">"想你了 ♡"</p>
+                        </div>
+                    </div>
+                    <div class="vis-card vis-card-front">
+                        <div class="vis-card-placeholder">
+                            <span>📷</span>
+                            <p>上传你们的第一张照片</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能入口 -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-head">
+                <p class="section-eyebrow">四个角落</p>
+                <h2 class="section-title">装下所有美好</h2>
+            </div>
+            <div class="features-grid">
+                <a href="pages/photos.html" class="feat-card feat-photos">
+                    <div class="feat-bg"></div>
+                    <div class="feat-body">
+                        <div class="feat-icon">📷</div>
+                        <h3 class="feat-title">相册</h3>
+                        <p class="feat-desc">上传并整理你们之间最珍贵的照片，按时间和专辑浏览</p>
+                    </div>
+                    <div class="feat-footer">
+                        <span>进入相册</span>
+                        <span class="feat-arrow">→</span>
+                    </div>
+                </a>
+                <a href="pages/notes.html" class="feat-card feat-notes">
+                    <div class="feat-bg"></div>
+                    <div class="feat-body">
+                        <div class="feat-icon">💌</div>
+                        <h3 class="feat-title">便签墙</h3>
+                        <p class="feat-desc">随时给对方留下心里话，写下此刻想说的每一句话</p>
+                    </div>
+                    <div class="feat-footer">
+                        <span>写便签</span>
+                        <span class="feat-arrow">→</span>
+                    </div>
+                </a>
+                <a href="pages/timeline.html" class="feat-card feat-timeline">
+                    <div class="feat-bg"></div>
+                    <div class="feat-body">
+                        <div class="feat-icon">📅</div>
+                        <h3 class="feat-title">时间轴</h3>
+                        <p class="feat-desc">记录你们在一起的每一个重要时刻，珍藏每个纪念日</p>
+                    </div>
+                    <div class="feat-footer">
+                        <span>查看时间轴</span>
+                        <span class="feat-arrow">→</span>
+                    </div>
+                </a>
+                <a href="pages/diary.html" class="feat-card feat-diary">
+                    <div class="feat-bg"></div>
+                    <div class="feat-body">
+                        <div class="feat-icon">📖</div>
+                        <h3 class="feat-title">日记</h3>
+                        <p class="feat-desc">写下每天的生活点滴，记录两个人共同走过的每一天</p>
+                    </div>
+                    <div class="feat-footer">
+                        <span>写日记</span>
+                        <span class="feat-arrow">→</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-heart">♡</div>
+            <p>Made with love, just for the two of us</p>
+            <p class="footer-small">© <span id="currentYear"></span> 我们的小世界</p>
+        </div>
+    </footer>
+
+    <script src="js/api.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

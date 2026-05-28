@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时间轴 — 我们的小世界</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Noto+Sans+SC:wght@300;400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/page.css">
+</head>
+<body>
+    <nav class="nav scrolled" id="mainNav">
+        <div class="nav-container">
+            <a href="../index.html" class="nav-brand">
+                <span class="brand-heart">♡</span>
+                <span class="brand-text">我们的小世界</span>
+            </a>
+            <div class="nav-links" id="navLinks">
+                <a href="photos.html"   class="nav-link">📷 相册</a>
+                <a href="notes.html"    class="nav-link">💌 便签</a>
+                <a href="timeline.html" class="nav-link active">📅 时间轴</a>
+                <a href="diary.html"    class="nav-link">📖 日记</a>
+            </div>
+            <button class="nav-toggle" id="navToggle"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <main class="page-main">
+        <div class="page-header">
+            <div class="page-icon">📅</div>
+            <h1 class="page-title">时间轴</h1>
+            <p class="page-subtitle">记录每一个重要时刻</p>
+        </div>
+
+        <div class="page-content">
+            <!-- 新增事件 -->
+            <div class="form-card">
+                <div class="form-card-title">✨ 添加新事件</div>
+                <div class="form-row">
+                    <input type="date" class="form-input" id="eventDate" style="max-width:180px;">
+                    <input type="text" class="form-input" id="eventTitle" placeholder="事件标题（必填）">
+                </div>
+                <textarea class="form-textarea" id="eventDesc" placeholder="描述这个特别的时刻…" rows="3"></textarea>
+                <div style="margin-top: 12px; text-align: right;">
+                    <button class="btn btn-primary" id="addEventBtn">添加到时间轴 →</button>
+                </div>
+            </div>
+
+            <!-- 时间轴 -->
+            <div id="timelineContainer">
+                <div class="empty-state" id="timelineEmpty">
+                    <span class="empty-state-icon">📅</span>
+                    <p>还没有事件，添加你们的第一个重要时刻吧</p>
+                </div>
+                <div class="timeline" id="timelineList" style="display:none;"></div>
+            </div>
+        </div>
+    </main>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/nav.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const dateInput  = document.getElementById('eventDate');
+        const titleInput = document.getElementById('eventTitle');
+        const descInput  = document.getElementById('eventDesc');
+        const addBtn     = document.getElementById('addEventBtn');
+        const timelineList = document.getElementById('timelineList');
+        const timelineEmpty = document.getElementById('timelineEmpty');
+
+        dateInput.value = new Date().toISOString().slice(0, 10);
+
+        async function loadTimeline() {
+            try {
+                const events = await API.getTimeline();
+                renderEvents(events);
+            } catch (e) {
+                toast('⚠️ 加载失败：' + e.message);
+            }
+        }
+
+        function renderEvents(events) {
+            if (!events.length) {
+                timelineList.style.display = 'none';
+                timelineEmpty.style.display = 'block';
+                return;
+            }
+            timelineEmpty.style.display = 'none';
+            timelineList.style.display = 'block';
+
+            timelineList.innerHTML = events.map(e => `
+                <div class="timeline-item">
+                    <div class="timeline-item-date">${formatDate(e.event_date)}</div>
+                    <div class="timeline-item-title">${escapeHtml(e.title)}</div>
+                    ${e.description ? `<div class="timeline-item-desc">${escapeHtml(e.description)}</div>` : ''}
+                    <div class="timeline-item-actions">
+                        <button class="btn btn-ghost" style="padding:6px 14px;font-size:13px;" onclick="deleteEvent(${e.id})">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.deleteEvent = async (id) => {
+            if (!confirm('确定删除这个事件吗？')) return;
+            try {
+                await API.deleteTimeline(id);
+                loadTimeline();
+                toast('已删除');
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        };
+
+        addBtn.addEventListener('click', async () => {
+            const title = titleInput.value.trim();
+            const date  = dateInput.value;
+            if (!title) {
+                titleInput.focus();
+                titleInput.style.borderColor = '#D4878F';
+                setTimeout(() => titleInput.style.borderColor = '', 1500);
+                return;
+            }
+            if (!date) {
+                dateInput.focus();
+                return;
+            }
+            try {
+                await API.addTimelineEvent({
+                    title,
+                    description: descInput.value.trim(),
+                    event_date: date
+                });
+                titleInput.value = '';
+                descInput.value = '';
+                dateInput.value = new Date().toISOString().slice(0, 10);
+                toast('✨ 事件已添加！');
+                loadTimeline();
+            } catch (e) {
+                toast('⚠️ ' + e.message);
+            }
+        });
+
+        loadTimeline();
+    });
+
+    function escapeHtml(str) {
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function formatDate(d) {
+        if (!d) return '';
+        const date = new Date(d + 'T00:00:00');
+        return date.toLocaleDateString('zh-CN', { year:'numeric', month:'long', day:'numeric' });
+    }
+
+    function toast(msg) {
+        const c = document.getElementById('toastContainer');
+        const el = document.createElement('div');
+        el.className = 'toast';
+        el.textContent = msg;
+        c.appendChild(el);
+        setTimeout(() => el.remove(), 2500);
+    }
+    </script>
+</body>
+</html>
